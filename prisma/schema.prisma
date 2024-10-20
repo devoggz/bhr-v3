@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  USER
+  CHAIRMAN
+}
+
+model User {
+  id          String     @id @default(cuid())
+  firstName   String?
+  lastName    String?
+  username    String?    @unique
+  phoneNumber String?    @unique
+  password    String?
+  idNumber    String?    @unique
+  bikeNumber  String?
+  role        UserRole?  @default(USER)
+  riderType   String[]
+  image       String?
+  points      Int?       @default(5)
+  terms       Boolean?   @default(false)
+  ward        String?
+  stage       String?
+  accounts    Account[]
+  comments    Comment[]
+  stages      Stage[]
+  tasks       UserTask[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  Session     Session[]
+  Task        Task[]
+
+  @@map("users")
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  thumbnailURL String?
+  points       Int        @default(5)
+  videoURL     String?
+  createdAt    DateTime   @default(now())
+  userId       String?
+  taskId       String?
+  completed    Boolean    @default(false)
+  users        UserTask[] // Relationship to track users who completed tasks
+  User         User?      @relation(fields: [userId], references: [id])
+
+  @@map("tasks")
+}
+
+model UserTask {
+  userId    String
+  taskId    String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  task Task @relation(fields: [taskId], references: [id])
+
+  @@id([userId, taskId]) // Composite key
+}
+
+model Post {
+  id           String    @id @default(cuid())
+  title        String
+  category     String
+  thumbnailURL String?
+  videoURL     String
+  comments     Comment[]
+  content      String?
+  createdAt    DateTime  @default(now())
+
+  @@map("posts")
+}
+
+model UserPost {
+  id           String   @id @default(cuid())
+  title        String
+  category     String
+  thumbnailURL String?
+  content      String?
+  videoURL     String
+  createdAt    DateTime @default(now())
+
+  @@map("userposts")
+}
+
+model Stage {
+  id         String   @id @default(cuid())
+  stageName  String
+  county     String
+  sub_county String
+  ward       String
+  longitude  String
+  latitude   String
+  createdAt  DateTime @default(now())
+  User       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+
+  @@map("stages")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  comment   String
+  createdAt DateTime @default(now())
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?
+  postId    String?
+  Post      Post?    @relation(fields: [postId], references: [id])
+
+  @@map("comments")
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Session {
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
